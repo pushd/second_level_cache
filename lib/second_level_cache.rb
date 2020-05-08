@@ -18,8 +18,17 @@ module SecondLevelCache
     module ClassMethods
       attr_reader :second_level_cache_options
 
+      # must explicitly use +with_second_level_cache+
+      def may_act_as_cached(options = {})
+        acts_as_cached(enabled_by_default: false)
+      end
+
       def acts_as_cached(options = {})
-        @second_level_cache_enabled = true
+        if options[:enabled_by_default].present?
+          @second_level_cache_enabled = options[:enabled_by_default]
+        else
+          @second_level_cache_enabled = true
+        end
         @second_level_cache_options = options
         @second_level_cache_options[:expires_in] ||= 1.week
         @second_level_cache_options[:version] ||= 0
@@ -28,7 +37,11 @@ module SecondLevelCache
       end
 
       def second_level_cache_enabled?
-        !!@second_level_cache_enabled
+        if defined? @second_level_cache_enabled
+          @second_level_cache_enabled
+        else
+          false
+        end
       end
 
       def without_second_level_cache
@@ -38,6 +51,15 @@ module SecondLevelCache
       ensure
         @second_level_cache_enabled = old
       end
+
+      def with_second_level_cache
+        old, @second_level_cache_enabled = @second_level_cache_enabled, true
+
+        yield if block_given?
+      ensure
+        @second_level_cache_enabled = old
+      end
+
 
       def cache_store
         Config.cache_store

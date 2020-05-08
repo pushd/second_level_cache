@@ -34,6 +34,19 @@ class FinderMethodsTest < ActiveSupport::TestCase
     end
   end
 
+  def test_with_second_level_cache
+    order = Order.create!(num: 1, site: "foo.org", id: 123)
+    order.write_second_level_cache
+    order_from_db = nil
+    Order.with_second_level_cache do
+      assert_no_queries do
+        order_from_db = Order.find(order.id)
+      end
+    end
+    assert_not_nil order_from_db
+    assert_equal order.site, order_from_db.site
+  end
+
   def test_without_second_level_cache
     @user.name = "NewName"
     @user.write_second_level_cache
